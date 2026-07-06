@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MLB Baseball Betting DataHub</title>
+  <meta name="description" content="MLB baseball betting research dashboard with teams, games, rosters, player images, stat tables, manual TAB.nz odds, and draggable player prop graphs." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <nav class="topbar" aria-label="Main header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">⚾</span>
+        <div>
+          <h1>MLB Baseball Betting DataHub</h1>
+          <p>Past + present baseball research · player images · lineup stats · manual TAB.nz odds · draggable prop graphs · Instagram-style gradient UI</p>
+        </div>
+      </div>
+      <div class="status-pill" id="connectionStatus">Ready</div>
+    </nav>
+
+    <section class="control-panel" aria-label="Data controls">
+      <label>
+        Season / year
+        <input id="seasonInput" type="number" min="1876" max="2100" value="2026" />
+      </label>
+      <label>
+        Game date
+        <input id="dateInput" type="date" />
+      </label>
+      <label>
+        Roster mode
+        <select id="rosterMode">
+          <option value="active">Active roster</option>
+          <option value="40Man">40-man roster</option>
+          <option value="fullSeason">Full season / old players</option>
+        </select>
+      </label>
+      <label>
+        Team
+        <select id="teamSelect"></select>
+      </label>
+      <button id="loadBtn" class="primary">Load MLB data</button>
+      <button id="demoBtn" class="ghost">Use demo data</button>
+    </section>
+  </header>
+
+  <main>
+    <section class="alert legal-note">
+      <strong>Betting safety:</strong> Research dashboard only. It does not scrape TAB.nz, does not place bets, and does not guarantee wins. Enter TAB.nz odds manually and use the data as support, not a sure-win promise.
+    </section>
+
+    <section class="tabs" role="tablist" aria-label="DataHub sections">
+      <button class="tab active" data-tab="dashboard" role="tab">Dashboard</button>
+      <button class="tab" data-tab="games" role="tab">Games</button>
+      <button class="tab" data-tab="teams" role="tab">Teams</button>
+      <button class="tab" data-tab="lineups" role="tab">Lineups</button>
+      <button class="tab" data-tab="players" role="tab">Players</button>
+      <button class="tab" data-tab="props" role="tab">Player Prop Lab</button>
+      <button class="tab" data-tab="betting" role="tab">TAB Odds</button>
+      <button class="tab" data-tab="history" role="tab">Historical Vault</button>
+    </section>
+
+    <section id="dashboard" class="tab-page active" role="tabpanel">
+      <div class="grid cards-grid">
+        <article class="metric-card">
+          <span>Games loaded</span>
+          <strong id="gamesCount">0</strong>
+          <small>Selected date</small>
+        </article>
+        <article class="metric-card">
+          <span>Teams loaded</span>
+          <strong id="teamsCount">0</strong>
+          <small>Current MLB clubs</small>
+        </article>
+        <article class="metric-card">
+          <span>Roster players</span>
+          <strong id="playersCount">0</strong>
+          <small>Selected team / roster mode</small>
+        </article>
+        <article class="metric-card accent">
+          <span>Top betting signal</span>
+          <strong id="topSignal">—</strong>
+          <small>Based on loaded player stats</small>
+        </article>
+      </div>
+
+      <div class="split">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Today / selected date games</h2>
+            <span class="tag">schedule + probable pitchers</span>
+          </div>
+          <div id="gameCards" class="game-cards"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Best players from selected team</h2>
+            <span class="tag">hits · HR · K · OPS</span>
+          </div>
+          <div id="topPlayers" class="player-list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="games" class="tab-page" role="tabpanel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Game board</h2>
+            <p class="muted">Use this to research moneyline, totals, team totals, and pitcher prop markets before entering odds manually.</p>
+          </div>
+          <button id="exportGamesBtn" class="small">Export games CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Away</th>
+                <th>Home</th>
+                <th>Probable pitchers</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Research note</th>
+              </tr>
+            </thead>
+            <tbody id="gamesTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="teams" class="tab-page" role="tabpanel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>MLB teams database</h2>
+            <p class="muted">Current teams are loaded from MLB data. For future new teams, the team list updates when MLB data adds them.</p>
+          </div>
+          <span class="tag">active clubs</span>
+        </div>
+        <input id="teamSearch" class="search" placeholder="Search team, division, league, venue…" />
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Abbr.</th>
+                <th>League</th>
+                <th>Division</th>
+                <th>Venue</th>
+                <th>First year</th>
+              </tr>
+            </thead>
+            <tbody id="teamsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="lineups" class="tab-page" role="tabpanel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Lineup and position table</h2>
+            <p class="muted">Official starting lineups are usually available close to first pitch. Before confirmation, this ranks the selected roster by betting-useful season stats.</p>
+          </div>
+          <button id="exportRosterBtn" class="small">Export roster CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Position</th>
+                <th>Games</th>
+                <th>Hits</th>
+                <th>HR</th>
+                <th>RBI</th>
+                <th>Bat SO</th>
+                <th>AVG</th>
+                <th>OPS</th>
+                <th>Pitch K</th>
+                <th>ERA</th>
+                <th>Signal</th>
+                <th>Prop graph</th>
+              </tr>
+            </thead>
+            <tbody id="lineupTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="players" class="tab-page" role="tabpanel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Players database</h2>
+            <p class="muted">Player cards include images and hitting/pitching stats for the selected team and season.</p>
+          </div>
+          <span class="tag">images + stats</span>
+        </div>
+        <input id="playerSearch" class="search" placeholder="Search loaded player name or position…" />
+        <div id="playersGrid" class="players-grid"></div>
+      </div>
+    </section>
+
+    <section id="props" class="tab-page" role="tabpanel">
+      <div class="panel prop-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Player Prop Lab</h2>
+            <p class="muted">Choose a player, load game logs, then drag the chart line or set a number to test Over/Under results. Example: Ranger Suarez strikeout total per game.</p>
+          </div>
+          <span class="tag">drag line · over/under</span>
+        </div>
+
+        <div class="prop-controls">
+          <label>
+            Player search
+            <div class="inline-inputs">
+              <input id="propPlayerSearch" placeholder="Ranger Suarez, Shohei Ohtani, Aaron Judge…" value="Ranger Suarez" />
+              <button id="findPlayerBtn" class="small">Find player</button>
+            </div>
+          </label>
+          <label>
+            Player
+            <select id="propPlayerSelect"></select>
+          </label>
+          <label>
+            Market
+            <select id="propMarket">
+              <option value="pitching:Strikeouts:strikeOuts">Pitcher strikeouts</option>
+              <option value="hitting:Hits:hits">Batter hits</option>
+              <option value="hitting:Home runs:homeRuns">Batter home runs</option>
+              <option value="hitting:Total bases:totalBases">Batter total bases</option>
+              <option value="hitting:RBI:rbi">Batter RBI</option>
+            </select>
+          </label>
+          <label>
+            Betting line
+            <input id="propLineInput" type="number" min="0" step="0.5" value="5.5" />
+          </label>
+          <button id="loadPropBtn" class="primary">Load prop graph</button>
+        </div>
+
+        <div id="propHero" class="prop-hero">
+          <img class="avatar" src="" alt="Selected player" />
+          <div>
+            <strong>Select a player to open the prop graph</strong>
+            <p class="muted">Example: Ranger Suarez pitcher strikeouts. Drag the horizontal line to test over/under results per game.</p>
+          </div>
+        </div>
+
+        <div class="prop-summary" id="propSummary">
+          <article><span>Games</span><strong>—</strong><small>loaded logs</small></article>
+          <article><span>Over hit rate</span><strong>—</strong><small>actual &gt; line</small></article>
+          <article><span>Under hit rate</span><strong>—</strong><small>actual &lt; line</small></article>
+          <article><span>Pushes</span><strong>—</strong><small>actual = line</small></article>
+        </div>
+
+        <div class="chart-shell">
+          <canvas id="propChart" width="1200" height="460" aria-label="Player game log prop chart"></canvas>
+          <div class="chart-help">Drag the glowing horizontal line up/down, or type the line above. Pink/purple dots above the line = OVER. Orange dots below = UNDER. Yellow = PUSH.</div>
+        </div>
+
+        <div class="table-wrap compact-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Opponent</th>
+                <th>Team</th>
+                <th>Market stat</th>
+                <th>Line</th>
+                <th>Result</th>
+                <th>Betting note</th>
+              </tr>
+            </thead>
+            <tbody id="propLogTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="betting" class="tab-page" role="tabpanel">
+      <div class="split">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Betting Lens</h2>
+            <span class="tag">data signals</span>
+          </div>
+          <div id="bettingSignals" class="signal-list"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>TAB.nz manual odds slip</h2>
+              <p class="muted">Copy decimal odds from TAB.nz manually. This dashboard calculates return/profit only.</p>
+            </div>
+            <span class="tag">no odds API</span>
+          </div>
+          <div class="odds-form">
+            <input id="marketInput" placeholder="Market e.g. Ranger Suarez over 5.5 Ks" />
+            <input id="oddsInput" type="number" step="0.01" min="1" placeholder="Decimal odds" />
+            <input id="stakeInput" type="number" step="0.01" min="0" placeholder="Stake NZD" />
+            <button id="addSlipBtn" class="primary">Add</button>
+          </div>
+          <div id="slipList" class="slip-list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="history" class="tab-page" role="tabpanel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Historical Vault</h2>
+            <p class="muted">Change the season year and roster mode to review old teams/players where MLB data is available. Save local snapshots for quick comparison.</p>
+          </div>
+          <button id="saveSnapshotBtn" class="small">Save local snapshot</button>
+        </div>
+        <div id="snapshotList" class="snapshot-list"></div>
+        <div class="architecture">
+          <h3>Recommended full-data architecture</h3>
+          <ol>
+            <li><strong>Frontend:</strong> this dashboard for games, teams, players, images, tables, charts, and manual TAB.nz odds.</li>
+            <li><strong>Backend collector:</strong> scheduled jobs that collect schedules, rosters, standings, box scores, game logs, lineups, injuries, and player stats.</li>
+            <li><strong>Database:</strong> PostgreSQL tables for teams, players, seasons, games, lineups, player_game_stats, pitching_stats, batting_stats, injuries, and manual_tab_odds.</li>
+            <li><strong>Prop engine:</strong> store every player game log so you can calculate hit rates for lines such as over/under 4.5, 5.5, 6.5 strikeouts.</li>
+            <li><strong>TAB.nz:</strong> keep manual odds fields unless TAB.nz provides written permission or an official feed.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <template id="emptyStateTemplate">
+    <div class="empty-state">
+      <strong>No data loaded yet.</strong>
+      <p>Choose season/date/team, then click <b>Load MLB data</b>. Use demo data if your browser blocks live fetches.</p>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
